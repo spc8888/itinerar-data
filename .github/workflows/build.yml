@@ -1,6 +1,6 @@
 # Spracovanie máp OpenStreetMap po krajinách pre aplikáciu Itinerár (vylet.deaworks.eu).
 # Denne krajiny, ktoré má aplikácia načítané (verejný zoznam api.php?r=data/wanted), v nedeľu celá Európa (fair use Geofabrik),
-# ručne ľubovoľné krajiny (Actions → Run workflow → countries: "slovakia czech-republic").
+# ručne ľubovoľné krajiny (Actions → Run workflow → countries: "slovakia czech-republic", alebo all = celá Európa).
 # Výsledok: GitHub Release „data" – <krajina>.jsonl.gz, <krajina>.meta.json, index.json. Krajina, ktorej obsah sa nezmenil,
 # sa nenahrá znova (verzia ostane → aplikácia nič nezapisuje).
 name: build
@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       countries:
-        description: 'Id krajín Geofabrik oddelené medzerou (prázdne = podľa plánu)'
+        description: 'Id krajín Geofabrik oddelené medzerou, all = celá Európa (prázdne = podľa plánu)'
         required: false
         default: ''
 
@@ -43,9 +43,9 @@ jobs:
         run: |
           curl -fsSL --retry 3 -o geofabrik.json https://download.geofabrik.de/index-v1-nogeom.json
           python3 countries.py --geofabrik-index geofabrik.json > europe.json
-          if [ -n "$INPUT" ]; then
+          if [ -n "$INPUT" ] && [ "$INPUT" != "all" ]; then
             echo "$INPUT" | tr ' ,' '\n\n' | grep -v '^$' | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().split()))' > want.json
-          elif [ "$(date -u +%u)" = "7" ]; then
+          elif [ "$INPUT" = "all" ] || [ "$(date -u +%u)" = "7" ]; then
             python3 -c 'import json; print(json.dumps([c["id"] for c in json.load(open("europe.json"))]))' > want.json
           else
             curl -fsS --max-time 30 "$WANTED_URL" -o want.json || echo '[]' > want.json

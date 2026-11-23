@@ -8,7 +8,7 @@ pre aplikáciu **Itinerár** (vylet.deaworks.eu). Aplikácia si súbory sťahuje
 - Výsledok: Release [`data`](../../releases/tag/data) – `<krajina>.jsonl.gz` (riadok = prvok ako z Overpass: type, id, lat, lon,
   tags, wd), `<krajina>.meta.json` a `index.json` (verzia, počet, veľkosť, sha256, obálka).
 - Automat (`.github/workflows/build.yml`): denne krajiny, ktoré má aplikácia načítané, v nedeľu celá Európa; krajina bez zmeny
-  obsahu sa nenahrá znova. Ručne: Actions → build → Run workflow → `countries: slovakia czech-republic`.
+  obsahu sa nenahrá znova. Ručne: Actions → build → Run workflow → `countries: slovakia czech-republic` (alebo `all` = celá Európa).
 
 ## Licencia
 
