@@ -38,8 +38,9 @@ class IndexTest(unittest.TestCase):
             out = json.loads(subprocess.run([sys.executable, str(ROOT / 'countries.py'), '--geofabrik-index', str(f)],
                                             check=True, capture_output=True, text=True).stdout)
         self.assertEqual(out, [
-            {'id': 'great-britain', 'name': 'Great Britain', 'url': 'https://download.geofabrik.de/europe/great-britain-latest.osm.pbf'},
-            {'id': 'slovakia', 'name': 'Slovakia', 'url': 'https://download.geofabrik.de/europe/slovakia-latest.osm.pbf'},
+            # iso = kód krajiny (ISO 3166-1) pre názov v jazyku aplikácie; Great Britain ho nemá (len časti GB-ENG…)
+            {'id': 'great-britain', 'name': 'Great Britain', 'iso': None, 'url': 'https://download.geofabrik.de/europe/great-britain-latest.osm.pbf'},
+            {'id': 'slovakia', 'name': 'Slovakia', 'iso': 'SK', 'url': 'https://download.geofabrik.de/europe/slovakia-latest.osm.pbf'},
         ])
 
     def test_zlucenie_indexu(self):

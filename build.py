@@ -177,7 +177,7 @@ def data_version(pbf: pathlib.Path) -> str:
     return datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d')
 
 
-def write(out: pathlib.Path, cid: str, name: str, version: str, items: list) -> dict:
+def write(out: pathlib.Path, cid: str, name: str, version: str, items: list, iso: str = None) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     raw = ''.join(json.dumps(e, ensure_ascii=False, separators=(',', ':')) + '\n' for e in items).encode('utf-8')
     buf = io.BytesIO()
@@ -188,7 +188,7 @@ def write(out: pathlib.Path, cid: str, name: str, version: str, items: list) -> 
     lats = [e['lat'] for e in items] or [0]
     lons = [e['lon'] for e in items] or [0]
     meta = {
-        'id': cid, 'name': name, 'version': version, 'count': len(items), 'bytes': len(data),
+        'id': cid, 'name': name, 'iso': iso, 'version': version, 'count': len(items), 'bytes': len(data),
         'sha256': hashlib.sha256(data).hexdigest(), 'content': hashlib.sha256(raw).hexdigest(),
         'bbox': [min(lats), min(lons), max(lats), max(lons)],
         'built': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
@@ -204,6 +204,7 @@ def main(argv=None):
     ap.add_argument('--pbf', required=True, type=pathlib.Path)
     ap.add_argument('--out', required=True, type=pathlib.Path)
     ap.add_argument('--version')
+    ap.add_argument('--iso', help='kód krajiny ISO 3166-1 (názov v jazyku aplikácie), prázdne = žiadny')
     g = ap.add_mutually_exclusive_group()
     g.add_argument('--wikidata', default=SPARQL, help='adresa SPARQL (predvolene query.wikidata.org)')
     g.add_argument('--no-wikidata', action='store_true')
@@ -214,7 +215,7 @@ def main(argv=None):
         items = enrich(items, fixed=json.loads(a.wd_json.read_text(encoding='utf-8')))
     elif not a.no_wikidata:
         items = enrich(items, endpoint=a.wikidata)
-    meta = write(a.out, a.id, a.name, a.version or data_version(a.pbf), items)
+    meta = write(a.out, a.id, a.name, a.version or data_version(a.pbf), items, a.iso or None)
     print(json.dumps({k: meta[k] for k in ('id', 'count', 'bytes', 'version')}))
 
 

@@ -62,7 +62,8 @@ class BuildTest(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_vyber_miest_a_atributy(self):
-        items, meta = run_build(self.out, '--no-wikidata')
+        items, meta = run_build(self.out, '--no-wikidata', '--iso', 'SK')
+        self.assertEqual(meta['iso'], 'SK')
         self.assertEqual(sorted(items), ['n1', 'n12', 'n3', 'n4', 'n5', 'n7', 'n8', 'r30', 'w10'])
         # vrchol bez výšky, kostol bez wikidata, ulica a atrakcia bez mena nepatria do výstupu
         for k in ['n2', 'n6', 'w20', 'n9']:

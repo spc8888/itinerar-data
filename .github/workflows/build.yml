@@ -78,12 +78,12 @@ jobs:
       - name: Stiahnuť ${{ matrix.name }}
         run: curl -fL --retry 3 --retry-delay 30 -o in.osm.pbf "${{ matrix.url }}"
       - name: Spracovať
-        run: python3 build.py --id "${{ matrix.id }}" --name "${{ matrix.name }}" --pbf in.osm.pbf --out out
+        run: python3 build.py --id "${{ matrix.id }}" --name "${{ matrix.name }}" --iso "${{ matrix.iso }}" --pbf in.osm.pbf --out out
       - name: Nahrať, ak sa obsah zmenil
         run: |
           ID="${{ matrix.id }}"
           gh release download data -p "$ID.meta.json" -O prev.json 2>/dev/null || echo '{}' > prev.json
-          if python3 -c "import json,sys; a=json.load(open('prev.json')); b=json.load(open('out/$ID.meta.json')); sys.exit(0 if a.get('content') == b['content'] else 1)"; then
+          if python3 -c "import json,sys; a=json.load(open('prev.json')); b=json.load(open('out/$ID.meta.json')); sys.exit(0 if a.get('content') == b['content'] and a.get('iso') == b.get('iso') else 1)"; then
             echo "$ID: bez zmeny, nenahrávam"
           else
             gh release upload data "out/$ID.jsonl.gz" "out/$ID.meta.json" --clobber
