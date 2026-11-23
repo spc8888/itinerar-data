@@ -1,0 +1,9 @@
+# Výrazy pre `osmium tags-filter` – prvky, z ktorých aplikácia Itinerár vyberá miesta.
+# Musia zodpovedať funkcii osm_statements() v itinerar/web/app/providers.php (plus gastro amenity=restaurant,cafe).
+# Podmienky, ktoré osmium nevie (meno, výška vrcholu, ruins=castle, kostol len s wikidata), dorieši build.py (wanted()).
+nwr/tourism=viewpoint,attraction,museum,gallery,zoo,theme_park,aquarium
+nwr/natural=waterfall,cave_entrance,gorge,arch,rock,hot_spring
+n/natural=peak
+nwr/leisure=nature_reserve,water_park
+nwr/historic=castle,fort,manor,ruins,monument,archaeological_site,monastery
+nwr/amenity=place_of_worship,public_bath,restaurant,cafe

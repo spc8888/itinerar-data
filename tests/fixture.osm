@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Testovacia „krajina" pre build.py: čo do výstupu patrí (hrad, zrúcanina, vrchol s výškou, múzeum, reštaurácia, kostol
+     s wikidata, vyhliadka, rezervácia ako multipolygón) a čo nie (vrchol bez výšky, kostol bez wikidata, ulica, miesto bez mena).
+     Poradie ako v súboroch Geofabrik: uzly, cesty, relácie, každé podľa id (osmium export to vyžaduje). -->
+<osm version="0.6" generator="ručne">
+  <node id="1" version="1" lat="48.8945000" lon="18.0444000">
+    <tag k="historic" v="castle"/><tag k="name" v="Hrad Testov"/><tag k="wikidata" v="Q100"/>
+    <tag k="opening_hours" v="Tu-Su 09:00-17:00"/><tag k="website" v="https://hrad.example"/><tag k="fee" v="yes"/>
+    <tag k="charge" v="8 EUR"/><tag k="dog" v="leashed"/><tag k="wheelchair" v="no"/><tag k="source" v="survey"/>
+  </node>
+  <node id="2" version="1" lat="48.9500000" lon="18.1000000"><tag k="natural" v="peak"/><tag k="name" v="Vrch bez výšky"/></node>
+  <node id="3" version="1" lat="48.9600000" lon="18.1200000"><tag k="natural" v="peak"/><tag k="name" v="Veľký vrch"/><tag k="ele" v="1000"/></node>
+  <node id="4" version="1" lat="48.8950000" lon="18.0400000"><tag k="tourism" v="museum"/><tag k="name" v="Múzeum Testov"/><tag k="opening_hours" v="Mo-Fr 10:00-16:00"/></node>
+  <node id="5" version="1" lat="48.8930000" lon="18.0460000"><tag k="amenity" v="restaurant"/><tag k="name" v="Reštaurácia U testu"/></node>
+  <node id="6" version="1" lat="48.8900000" lon="18.0500000"><tag k="amenity" v="place_of_worship"/><tag k="name" v="Kostol bez wikidata"/></node>
+  <node id="7" version="1" lat="48.8910000" lon="18.0510000"><tag k="amenity" v="place_of_worship"/><tag k="name" v="Kostol s wikidata"/><tag k="wikidata" v="Q200"/></node>
+  <node id="8" version="1" lat="48.9200000" lon="18.0800000"><tag k="tourism" v="viewpoint"/><tag k="name" v="Vyhliadka"/><tag k="source" v="survey"/></node>
+  <node id="9" version="1" lat="48.9300000" lon="18.0900000"><tag k="tourism" v="attraction"/></node>
+  <node id="101" version="1" lat="48.7000000" lon="17.9000000"/>
+  <node id="102" version="1" lat="48.7000000" lon="17.9040000"/>
+  <node id="103" version="1" lat="48.7020000" lon="17.9040000"/>
+  <node id="104" version="1" lat="48.7020000" lon="17.9000000"/>
+  <node id="201" version="1" lat="48.8000000" lon="18.0000000"/>
+  <node id="202" version="1" lat="48.8010000" lon="18.0010000"/>
+  <node id="311" version="1" lat="49.0000000" lon="18.2000000"/>
+  <node id="312" version="1" lat="49.0000000" lon="18.2200000"/>
+  <node id="313" version="1" lat="49.0100000" lon="18.2200000"/>
+  <node id="314" version="1" lat="49.0100000" lon="18.2000000"/>
+  <!-- zrúcanina ako uzavretá cesta (štvorec 0,002° × 0,004°) -->
+  <way id="10" version="1"><nd ref="101"/><nd ref="102"/><nd ref="103"/><nd ref="104"/><nd ref="101"/>
+    <tag k="historic" v="ruins"/><tag k="ruins" v="castle"/><tag k="name" v="Zrúcanina Testova"/></way>
+  <!-- ulica: nepatrí do výstupu -->
+  <way id="20" version="1"><nd ref="201"/><nd ref="202"/><tag k="highway" v="residential"/><tag k="name" v="Ulica"/></way>
+  <way id="31" version="1"><nd ref="311"/><nd ref="312"/><nd ref="313"/><nd ref="314"/><nd ref="311"/></way>
+  <!-- rezervácia: multipolygón s vonkajšou cestou 31 -->
+  <relation id="30" version="1"><member type="way" ref="31" role="outer"/>
+    <tag k="type" v="multipolygon"/><tag k="leisure" v="nature_reserve"/><tag k="name" v="Rezervácia Test"/></relation>
+</osm>

@@ -1,0 +1,103 @@
+# Spracovanie máp OpenStreetMap po krajinách pre aplikáciu Itinerár (vylet.deaworks.eu).
+# Denne krajiny, ktoré má aplikácia načítané (verejný zoznam api.php?r=data/wanted), v nedeľu celá Európa (fair use Geofabrik),
+# ručne ľubovoľné krajiny (Actions → Run workflow → countries: "slovakia czech-republic").
+# Výsledok: GitHub Release „data" – <krajina>.jsonl.gz, <krajina>.meta.json, index.json. Krajina, ktorej obsah sa nezmenil,
+# sa nenahrá znova (verzia ostane → aplikácia nič nezapisuje).
+name: build
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+    inputs:
+      countries:
+        description: 'Id krajín Geofabrik oddelené medzerou (prázdne = podľa plánu)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  WANTED_URL: https://vylet.deaworks.eu/api.php?r=data/wanted
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      count: ${{ steps.plan.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Release „data" existuje
+        run: gh release view data >/dev/null 2>&1 || gh release create data --title "Údaje miest" --notes "Miesta z OpenStreetMap (© prispievatelia OpenStreetMap, ODbL) po krajinách pre aplikáciu Itinerár."
+      - name: Zoznam krajín
+        id: plan
+        env:
+          INPUT: ${{ github.event.inputs.countries }}
+        run: |
+          curl -fsSL --retry 3 -o geofabrik.json https://download.geofabrik.de/index-v1-nogeom.json
+          python3 countries.py --geofabrik-index geofabrik.json > europe.json
+          if [ -n "$INPUT" ]; then
+            echo "$INPUT" | tr ' ,' '\n\n' | grep -v '^$' | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().split()))' > want.json
+          elif [ "$(date -u +%u)" = "7" ]; then
+            python3 -c 'import json; print(json.dumps([c["id"] for c in json.load(open("europe.json"))]))' > want.json
+          else
+            curl -fsS --max-time 30 "$WANTED_URL" -o want.json || echo '[]' > want.json
+          fi
+          python3 - <<'EOF' >> "$GITHUB_OUTPUT"
+          import json
+          europe = {c['id']: c for c in json.load(open('europe.json'))}
+          try:
+              want = json.load(open('want.json'))
+          except ValueError:
+              want = []
+          items = [europe[i] for i in dict.fromkeys(want) if isinstance(i, str) and i in europe]
+          print('matrix=' + json.dumps({'include': items}))
+          print(f'count={len(items)}')
+          EOF
+
+  country:
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: osmium
+        run: sudo apt-get update -q && sudo apt-get install -y -q osmium-tool
+      - name: Stiahnuť ${{ matrix.name }}
+        run: curl -fL --retry 3 --retry-delay 30 -o in.osm.pbf "${{ matrix.url }}"
+      - name: Spracovať
+        run: python3 build.py --id "${{ matrix.id }}" --name "${{ matrix.name }}" --pbf in.osm.pbf --out out
+      - name: Nahrať, ak sa obsah zmenil
+        run: |
+          ID="${{ matrix.id }}"
+          gh release download data -p "$ID.meta.json" -O prev.json 2>/dev/null || echo '{}' > prev.json
+          if python3 -c "import json,sys; a=json.load(open('prev.json')); b=json.load(open('out/$ID.meta.json')); sys.exit(0 if a.get('content') == b['content'] else 1)"; then
+            echo "$ID: bez zmeny, nenahrávam"
+          else
+            gh release upload data "out/$ID.jsonl.gz" "out/$ID.meta.json" --clobber
+          fi
+
+  index:
+    needs: [plan, country]
+    if: always() && needs.plan.outputs.count != '0'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: index.json zo všetkých krajín
+        run: |
+          mkdir -p metas
+          gh release download data -p '*.meta.json' -D metas
+          python3 merge_index.py -o index.json metas/*.json
+          gh release upload data index.json --clobber
