@@ -34,11 +34,15 @@ class SparqlMock(http.server.BaseHTTPRequestHandler):
         rows = []
         if 'wd:Q100' in q:
             ent = {'type': 'uri', 'value': 'http://www.wikidata.org/entity/Q100'}
+            pt = {'value': 'Point(18.0445 48.8946)'}
             rows = [
-                {'item': ent, 'links': {'value': '12'}, 'img': {'value': 'http://commons.wikimedia.org/wiki/Special:FilePath/Hrad%20Testov.jpg'},
+                {'item': ent, 'links': {'value': '12'}, 'coord': pt, 'img': {'value': 'http://commons.wikimedia.org/wiki/Special:FilePath/Hrad%20Testov.jpg'},
                  'desc': {'value': 'hrad na Slovensku'}, 'lang': {'value': 'sk'}},
-                {'item': ent, 'links': {'value': '12'}, 'desc': {'value': 'castle in Slovakia'}, 'lang': {'value': 'en'}},
+                {'item': ent, 'links': {'value': '12'}, 'coord': pt, 'desc': {'value': 'castle in Slovakia'}, 'lang': {'value': 'en'}},
             ]
+            # Q200 = cirkev ako organizácia (bez polohy), Q300 = typ lietadla s polohou ďaleko – nie je to opis miesta
+            rows.append({'item': {'type': 'uri', 'value': 'http://www.wikidata.org/entity/Q200'}, 'links': {'value': '90'}})
+            rows.append({'item': {'type': 'uri', 'value': 'http://www.wikidata.org/entity/Q300'}, 'links': {'value': '60'}, 'coord': {'value': 'Point(37.6 55.7)'}})
         body = json.dumps({'results': {'bindings': rows}}).encode()
         self.send_response(200)
         self.send_header('Content-Type', 'application/sparql-results+json')
@@ -59,7 +63,7 @@ class BuildTest(unittest.TestCase):
 
     def test_vyber_miest_a_atributy(self):
         items, meta = run_build(self.out, '--no-wikidata')
-        self.assertEqual(sorted(items), ['n1', 'n3', 'n4', 'n5', 'n7', 'n8', 'r30', 'w10'])
+        self.assertEqual(sorted(items), ['n1', 'n12', 'n3', 'n4', 'n5', 'n7', 'n8', 'r30', 'w10'])
         # vrchol bez výšky, kostol bez wikidata, ulica a atrakcia bez mena nepatria do výstupu
         for k in ['n2', 'n6', 'w20', 'n9']:
             self.assertNotIn(k, items)
@@ -73,7 +77,7 @@ class BuildTest(unittest.TestCase):
         self.assertEqual((items['w10']['lat'], items['w10']['lon']), (48.701, 17.902))
         self.assertEqual((items['r30']['lat'], items['r30']['lon']), (49.005, 18.21))
         self.assertEqual(items['r30']['tags']['leisure'], 'nature_reserve')
-        self.assertEqual(meta['count'], 8)
+        self.assertEqual(meta['count'], 9)
         self.assertEqual(meta['bbox'], [48.701, 17.902, 49.005, 18.21])
         self.assertEqual((meta['id'], meta['name'], meta['version']), ('testland', 'Testland', '2026-11-01'))
         gz = (self.out / 'testland.jsonl.gz').read_bytes()
@@ -97,9 +101,13 @@ class BuildTest(unittest.TestCase):
             srv.shutdown()
             srv.server_close()
         self.assertEqual(items['n1']['wd'], {'pop': 12, 'img': 'Hrad Testov.jpg', 'desc': 'hrad na Slovensku'})
-        self.assertEqual(items['n7']['wd'], {'pop': 0, 'img': None, 'desc': None}, 'QID, ktorý Wikidata nepozná')
         self.assertIsNone(items['n3']['wd'], 'bez wikidata tagu')
         self.assertTrue(any('wd:Q100' in q and 'wd:Q200' in q for q in SparqlMock.queries))
+        # Odkaz na Wikidata, ktorý neopisuje miesto (organizácia bez polohy, druh, typ lietadla ďaleko):
+        # kostol bez platného odkazu vypadne (kostoly len so známym článkom), atrakcia ostane bez známosti a bez odkazu.
+        self.assertNotIn('n7', items)
+        self.assertIsNone(items['n12']['wd'])
+        self.assertNotIn('wikidata', items['n12']['tags'])
 
 
 if __name__ == '__main__':

@@ -16,6 +16,7 @@
   <node id="7" version="1" lat="48.8910000" lon="18.0510000"><tag k="amenity" v="place_of_worship"/><tag k="name" v="Kostol s wikidata"/><tag k="wikidata" v="Q200"/></node>
   <node id="8" version="1" lat="48.9200000" lon="18.0800000"><tag k="tourism" v="viewpoint"/><tag k="name" v="Vyhliadka"/><tag k="source" v="survey"/></node>
   <node id="9" version="1" lat="48.9300000" lon="18.0900000"><tag k="tourism" v="attraction"/></node>
+  <node id="12" version="1" lat="48.8960000" lon="18.0480000"><tag k="tourism" v="attraction"/><tag k="name" v="Lietadlo"/><tag k="wikidata" v="Q300"/></node>
   <node id="101" version="1" lat="48.7000000" lon="17.9000000"/>
   <node id="102" version="1" lat="48.7000000" lon="17.9040000"/>
   <node id="103" version="1" lat="48.7020000" lon="17.9040000"/>

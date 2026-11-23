@@ -14,6 +14,7 @@ import gzip
 import hashlib
 import io
 import json
+import math
 import pathlib
 import re
 import subprocess
@@ -37,6 +38,8 @@ KEEP_TAGS = {
     'phone', 'contact:phone', 'addr:street', 'addr:place', 'addr:housenumber', 'addr:city',
 }
 QID = re.compile(r'^Q\d+$')
+POINT = re.compile(r'Point\(([-\d.eE]+) ([-\d.eE]+)\)')
+WD_NEAR_KM = 20   # odkaz na Wikidata platí, len ak má položka polohu do 20 km od miesta
 
 
 def wanted(t: dict, osm_type: str) -> bool:
@@ -98,8 +101,8 @@ def extract(pbf: pathlib.Path) -> list:
 
 
 def sparql_batch(endpoint: str, qids: list) -> dict:
-    query = ('SELECT ?item ?links ?img ?desc ?lang WHERE { VALUES ?item { ' + ' '.join('wd:' + q for q in qids) + ' } '
-             'OPTIONAL { ?item wikibase:sitelinks ?links } OPTIONAL { ?item wdt:P18 ?img } '
+    query = ('SELECT ?item ?links ?img ?desc ?lang ?coord WHERE { VALUES ?item { ' + ' '.join('wd:' + q for q in qids) + ' } '
+             'OPTIONAL { ?item wikibase:sitelinks ?links } OPTIONAL { ?item wdt:P18 ?img } OPTIONAL { ?item wdt:P625 ?coord } '
              'OPTIONAL { ?item schema:description ?desc FILTER(LANG(?desc) IN ("sk", "cs", "en")) BIND(LANG(?desc) AS ?lang) } }')
     req = urllib.request.Request(endpoint + '?format=json&query=' + urllib.parse.quote(query),
                                  headers={'Accept': 'application/sparql-results+json', 'User-Agent': USER_AGENT})
@@ -117,7 +120,10 @@ def sparql_batch(endpoint: str, qids: list) -> dict:
     res, best = {}, {}
     for r in rows:
         q = r['item']['value'].rsplit('/', 1)[-1]
-        e = res.setdefault(q, {'pop': 0, 'img': None, 'desc': None})
+        e = res.setdefault(q, {'pop': 0, 'img': None, 'desc': None, 'coords': []})
+        m = POINT.match(r.get('coord', {}).get('value', ''))
+        if m and (float(m.group(2)), float(m.group(1))) not in e['coords']:
+            e['coords'].append((float(m.group(2)), float(m.group(1))))
         if 'links' in r:
             e['pop'] = max(e['pop'], int(r['links']['value']))
         if 'img' in r and not e['img']:
@@ -128,7 +134,15 @@ def sparql_batch(endpoint: str, qids: list) -> dict:
     return res
 
 
-def enrich(items: list, endpoint: str = None, fixed: dict = None) -> None:
+def km(a_lat, a_lon, b_lat, b_lon):
+    p = math.pi / 180
+    h = math.sin((b_lat - a_lat) * p / 2) ** 2 + math.cos(a_lat * p) * math.cos(b_lat * p) * math.sin((b_lon - a_lon) * p / 2) ** 2
+    return 12742 * math.asin(math.sqrt(h))
+
+
+def enrich(items: list, endpoint: str = None, fixed: dict = None) -> list:
+    """Doplní wd (známosť, fotka, popis). Odkaz, ktorý neopisuje miesto (organizácia, druh, typ lietadla – bez polohy alebo
+    ďaleko), sa zahodí aj s tagom wikidata; prvky, ktoré bez neho nespĺňajú podmienky (kostoly), vypadnú. Vráti nový zoznam."""
     qids = sorted({e['tags']['wikidata'] for e in items if QID.match(e['tags'].get('wikidata', ''))})
     found, failed = dict(fixed or {}), set()
     if endpoint:
@@ -141,8 +155,15 @@ def enrich(items: list, endpoint: str = None, fixed: dict = None) -> None:
             time.sleep(0.2)   # Wikidata: najviac 60 s výpočtu za minútu na IP
     for e in items:
         q = e['tags'].get('wikidata', '')
-        if QID.match(q) and q not in failed and (endpoint or fixed is not None):
-            e['wd'] = found.get(q, {'pop': 0, 'img': None, 'desc': None})
+        if not QID.match(q) or q in failed or not (endpoint or fixed is not None):
+            continue
+        w = found.get(q)
+        if endpoint and not (w and any(km(e['lat'], e['lon'], la, lo) <= WD_NEAR_KM for la, lo in w.get('coords', []))):
+            del e['tags']['wikidata']
+            continue
+        w = w or {'pop': 0, 'img': None, 'desc': None}
+        e['wd'] = {'pop': w['pop'], 'img': w['img'], 'desc': w['desc']}
+    return [e for e in items if wanted(e['tags'], e['type'])]
 
 
 def data_version(pbf: pathlib.Path) -> str:
@@ -190,9 +211,9 @@ def main(argv=None):
     a = ap.parse_args(argv)
     items = extract(a.pbf)
     if a.wd_json:
-        enrich(items, fixed=json.loads(a.wd_json.read_text(encoding='utf-8')))
+        items = enrich(items, fixed=json.loads(a.wd_json.read_text(encoding='utf-8')))
     elif not a.no_wikidata:
-        enrich(items, endpoint=a.wikidata)
+        items = enrich(items, endpoint=a.wikidata)
     meta = write(a.out, a.id, a.name, a.version or data_version(a.pbf), items)
     print(json.dumps({k: meta[k] for k in ('id', 'count', 'bytes', 'version')}))
 
