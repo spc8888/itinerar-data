@@ -69,14 +69,15 @@ jobs:
     timeout-minutes: 350   # Geofabrik → GitHub ~350 kB/s: Nemecko či Francúzsko (4,5 GB) sa sťahujú ~3,5 h
     strategy:
       fail-fast: false
-      max-parallel: 6
+      max-parallel: 4   # Geofabrik pri 6 súbežných sťahovaniach občas odmietol spojenie (2026-11-23: 4 krajiny z 45)
       matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - name: osmium
         run: sudo apt-get update -q && sudo apt-get install -y -q osmium-tool
       - name: Stiahnuť ${{ matrix.name }}
-        run: curl -fL --retry 3 --retry-delay 30 -o in.osm.pbf "${{ matrix.url }}"
+        # --retry samo neopakuje odmietnuté spojenie (curl 7) – to treba výslovne.
+        run: curl -fL --retry 6 --retry-delay 60 --retry-connrefused -o in.osm.pbf "${{ matrix.url }}"
       - name: Spracovať
         run: python3 build.py --id "${{ matrix.id }}" --name "${{ matrix.name }}" --iso "${{ matrix.iso }}" --pbf in.osm.pbf --out out
       - name: Nahrať, ak sa obsah zmenil
