@@ -15,6 +15,10 @@ GEOFABRIK = {'type': 'FeatureCollection', 'features': [
                                        'urls': {'pbf': 'https://download.geofabrik.de/europe/slovakia-latest.osm.pbf'}}},
     {'type': 'Feature', 'properties': {'id': 'great-britain', 'parent': 'europe', 'name': 'Great Britain', 'iso3166-2': ['GB-ENG'],
                                        'urls': {'pbf': 'https://download.geofabrik.de/europe/great-britain-latest.osm.pbf'}}},
+    # krajina + časť inej krajiny (Severné Írsko) → nie je to jedna krajina, slovenský názov „Írsko" by klamal
+    {'type': 'Feature', 'properties': {'id': 'ireland-and-northern-ireland', 'parent': 'europe', 'name': 'Ireland and Northern Ireland',
+                                       'iso3166-1:alpha2': ['IE'], 'iso3166-2': ['GB-NIR'],
+                                       'urls': {'pbf': 'https://download.geofabrik.de/europe/ireland-and-northern-ireland-latest.osm.pbf'}}},
     # spojené oblasti (DACH, Alpy) sa prekrývajú s krajinami → nie
     {'type': 'Feature', 'properties': {'id': 'dach', 'parent': 'europe', 'name': 'Germany, Austria, Switzerland',
                                        'urls': {'pbf': 'https://download.geofabrik.de/europe/dach-latest.osm.pbf'}}},
@@ -40,6 +44,8 @@ class IndexTest(unittest.TestCase):
         self.assertEqual(out, [
             # iso = kód krajiny (ISO 3166-1) pre názov v jazyku aplikácie; Great Britain ho nemá (len časti GB-ENG…)
             {'id': 'great-britain', 'name': 'Great Britain', 'iso': None, 'url': 'https://download.geofabrik.de/europe/great-britain-latest.osm.pbf'},
+            {'id': 'ireland-and-northern-ireland', 'name': 'Ireland and Northern Ireland', 'iso': None,
+             'url': 'https://download.geofabrik.de/europe/ireland-and-northern-ireland-latest.osm.pbf'},
             {'id': 'slovakia', 'name': 'Slovakia', 'iso': 'SK', 'url': 'https://download.geofabrik.de/europe/slovakia-latest.osm.pbf'},
         ])
 

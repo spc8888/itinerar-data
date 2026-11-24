@@ -43,6 +43,7 @@ jobs:
         run: |
           curl -fsSL --retry 3 -o geofabrik.json https://download.geofabrik.de/index-v1-nogeom.json
           python3 countries.py --geofabrik-index geofabrik.json > europe.json
+          python3 -c 'import json; print(" ".join(c["id"] + "=" + str(c["iso"]) for c in json.load(open("europe.json"))))'   # kódy krajín do logu (kontrola)
           if [ -n "$INPUT" ] && [ "$INPUT" != "all" ]; then
             echo "$INPUT" | tr ' ,' '\n\n' | grep -v '^$' | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().split()))' > want.json
           elif [ "$INPUT" = "all" ] || [ "$(date -u +%u)" = "7" ]; then
