@@ -47,7 +47,7 @@ class IndexTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             d = pathlib.Path(tmp)
             (d / 'a.meta.json').write_text(json.dumps(meta('slovakia', 'Slovakia', '2026-11-20T02:00:00Z', '2026-11-19')))
-            (d / 'a2.meta.json').write_text(json.dumps(meta('slovakia', 'Slovakia', '2026-11-22T02:00:00Z', '2026-11-21')))
+            (d / 'a2.meta.json').write_text(json.dumps({**meta('slovakia', 'Slovakia', '2026-11-22T02:00:00Z', '2026-11-21'), 'iso': 'SK'}))
             (d / 'b.meta.json').write_text(json.dumps(meta('austria', 'Austria', '2026-11-21T02:00:00Z')))
             (d / 'zle.meta.json').write_text('{nie je json')
             (d / 'neuplne.meta.json').write_text(json.dumps({'id': 'x'}))
@@ -57,6 +57,9 @@ class IndexTest(unittest.TestCase):
             idx = json.loads(out.read_text())
         self.assertEqual([c['id'] for c in idx['countries']], ['austria', 'slovakia'], 'podľa názvu, bez poškodených')
         self.assertEqual(idx['countries'][1]['version'], '2026-11-21', 'novšie spracovanie vyhráva')
+        # kód krajiny (názov v jazyku aplikácie) prejde do indexu; staršie meta bez neho → None
+        self.assertEqual(idx['countries'][1]['iso'], 'SK')
+        self.assertIsNone(idx['countries'][0]['iso'])
         self.assertRegex(idx['generated'], r'^\d{4}-\d\d-\d\dT')
 
 

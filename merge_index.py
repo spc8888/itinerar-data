@@ -24,7 +24,8 @@ def merge(paths) -> dict:
             print(f'preskakujem {p}: neúplné', file=sys.stderr)
             continue
         if m['id'] not in best or m['built'] > best[m['id']]['built']:
-            best[m['id']] = {k: m[k] for k in KEYS}
+            # iso (kód krajiny pre názov v jazyku aplikácie) je nepovinný – staršie meta ho nemajú
+            best[m['id']] = {**{k: m[k] for k in KEYS}, 'iso': m.get('iso')}
     return {
         'generated': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
         'countries': sorted(best.values(), key=lambda m: m['name']),
