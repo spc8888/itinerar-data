@@ -15,9 +15,9 @@ GEOFABRIK = {'type': 'FeatureCollection', 'features': [
                                        'urls': {'pbf': 'https://download.geofabrik.de/europe/slovakia-latest.osm.pbf'}}},
     {'type': 'Feature', 'properties': {'id': 'great-britain', 'parent': 'europe', 'name': 'Great Britain', 'iso3166-2': ['GB-ENG'],
                                        'urls': {'pbf': 'https://download.geofabrik.de/europe/great-britain-latest.osm.pbf'}}},
-    # krajina + časť inej krajiny (Severné Írsko) → nie je to jedna krajina, slovenský názov „Írsko" by klamal
+    # krajina + časť inej krajiny (Severné Írsko), v indexe Geofabrik len IE → slovenský názov „Írsko" by klamal
     {'type': 'Feature', 'properties': {'id': 'ireland-and-northern-ireland', 'parent': 'europe', 'name': 'Ireland and Northern Ireland',
-                                       'iso3166-1:alpha2': ['IE'], 'iso3166-2': ['GB-NIR'],
+                                       'iso3166-1:alpha2': ['IE'],
                                        'urls': {'pbf': 'https://download.geofabrik.de/europe/ireland-and-northern-ireland-latest.osm.pbf'}}},
     # spojené oblasti (DACH, Alpy) sa prekrývajú s krajinami → nie
     {'type': 'Feature', 'properties': {'id': 'dach', 'parent': 'europe', 'name': 'Germany, Austria, Switzerland',
